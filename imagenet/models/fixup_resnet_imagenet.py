@@ -27,7 +27,7 @@ class FixupBasicBlock(nn.Module):
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bias1b = nn.Parameter(torch.zeros(1))
         self.relu = nn.ReLU(inplace=True)
-        self.bias2a = nn.Parameter(torch.zeros(1))
+        #self.bias2a = nn.Parameter(torch.zeros(1))
         self.conv2 = conv3x3(planes, planes)
         self.scale = nn.Parameter(torch.ones(1))
         self.bias2b = nn.Parameter(torch.zeros(1))
@@ -37,10 +37,12 @@ class FixupBasicBlock(nn.Module):
     def forward(self, x):
         identity = x
 
-        out = self.conv1(x + self.bias1a)
+        #out = self.conv1(x + self.bias1a)
+        out = self.conv1(x)
         out = self.relu(out + self.bias1b)
 
-        out = self.conv2(out + self.bias2a)
+        #out = self.conv2(out + self.bias2a)
+        out = self.conv2(out)
         out = out * self.scale + self.bias2b
 
         if self.downsample is not None:
@@ -74,14 +76,17 @@ class FixupBottleneck(nn.Module):
 
     def forward(self, x):
         identity = x
-
-        out = self.conv1(x + self.bias1a)
+        # relu->bias#a->conv remove them
+        #out = self.conv1(x + self.bias1a)
+        out = self.conv1(x)
         out = self.relu(out + self.bias1b)
 
-        out = self.conv2(out + self.bias2a)
+        #out = self.conv2(out + self.bias2a)
+        out = self.conv2(out)
         out = self.relu(out + self.bias2b)
 
-        out = self.conv3(out + self.bias3a)
+        #out = self.conv3(out + self.bias3a)
+        out = self.conv3(out)
         out = out * self.scale + self.bias3b
 
         if self.downsample is not None:
