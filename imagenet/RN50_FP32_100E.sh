@@ -1,3 +1,4 @@
+# batch size option: -b, I keep the default value for other options like learning rate, momentum, weight decay in the repo
 # Train on 1 Node with 1 GPU 
 python imagenet_train.py  -a fixup_resnet50 --resume /home/hj14/Bias-Free-Fixup/imagenet/checkpoint-16.pth.tar --epochs 100 -b 64 --gpu 0  [path to imagenet]
 # Train on 1 Node with N GPU
