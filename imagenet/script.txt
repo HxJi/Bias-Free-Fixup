@@ -1,2 +1,0 @@
-/home/hj14/Bias-Free-Fixup/imagenet/imagenet_train.py  -a fixup_resnet50 --resume /home/hj14/Bias-Free-Fixup/imagenet/checkpoint-16.pth.tar --epochs 100 -b 64 --gpu 0  /home/hj14/Imagenet
-/home/hj14/Bias-Free-Fixup/imagenet/imagenet_train.py  -a fixup_resnet34 --epochs 100 -b 64 --gpu 0  /home/hj14/Imagenet
