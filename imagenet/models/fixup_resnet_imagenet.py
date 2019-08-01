@@ -81,7 +81,7 @@ class FixupBottleneck(nn.Module):
         #out = self.conv1(x + self.bias1a)
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
-        print out.size()
+        #print out.size()
 
         #out = self.conv2(out + self.bias2a)
         out = self.conv2(out)
