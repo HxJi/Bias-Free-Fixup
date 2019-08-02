@@ -23,7 +23,7 @@ class FixupBasicBlock(nn.Module):
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(FixupBasicBlock, self).__init__()
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        #self.bias1a = nn.Parameter(torch.zeros(1))
+        self.bias1a = nn.Parameter(torch.zeros(1))
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bias1b = nn.Parameter(torch.zeros(1))
         self.relu = nn.ReLU(inplace=True)
@@ -46,8 +46,8 @@ class FixupBasicBlock(nn.Module):
         out = out * self.scale + self.bias2b
 
         if self.downsample is not None:
-            identity = self.downsample(x)
-            #identity = self.downsample(x + self.bias1a)
+            #identity = self.downsample(x)
+            identity = self.downsample(x + self.bias1a)
 
         out += identity
         out = self.relu(out)
@@ -61,7 +61,7 @@ class FixupBottleneck(nn.Module):
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(FixupBottleneck, self).__init__()
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        # self.bias1a = nn.Parameter(torch.zeros(1))
+        self.bias1a = nn.Parameter(torch.zeros(1))
         self.conv1 = conv1x1(inplanes, planes)
         self.bias1b = nn.Parameter(torch.zeros(1))
         self.bias2a = nn.Parameter(torch.zeros(1))
@@ -81,6 +81,7 @@ class FixupBottleneck(nn.Module):
         #out = self.conv1(x + self.bias1a)
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
+        #print out.size()
 
         #out = self.conv2(out + self.bias2a)
         out = self.conv2(out)
@@ -91,8 +92,8 @@ class FixupBottleneck(nn.Module):
         out = out * self.scale + self.bias3b
 
         if self.downsample is not None:
-            identity = self.downsample(x)
-            # identity = self.downsample(x + self.bias1a)
+            #identity = self.downsample(x)
+            identity = self.downsample(x + self.bias1a)
 
         out += identity
         out = self.relu(out)
@@ -163,6 +164,12 @@ class FixupResNet(nn.Module):
         x = self.fc(x + self.bias2)
 
         return x
+
+activation = {}
+def get_activation(name):
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
 
 
 def fixup_resnet18(**kwargs):
