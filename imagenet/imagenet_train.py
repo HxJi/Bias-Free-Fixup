@@ -25,6 +25,10 @@ from util import mixup_data, mixup_criterion
 
 import models
 
+#[Houxiang]
+from functools import partial
+import collections
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -245,6 +249,14 @@ def main_worker(gpu, ngpus_per_node, args):
         return
 
     sgdr = CosineAnnealingLR(optimizer, args.epochs, eta_min=0, last_epoch=-1)
+
+    #[Houxiang]dictionary keeps activation
+    # partial to assign the layer name to each hook
+    # activations = collections.defaultdict(list)
+    # for name, m in net.named_modules():
+    #     if type(m)==nn.ReLU:
+    #         m.register_forward_hook(partial(save_activation, name))
+
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -269,6 +281,12 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
             }, is_best, '{0}-checkpoint-{1}.pth.tar'.format(args.arch,epoch + 1))
 
+        # [Houxiang] save activation and sanity check
+        # activations = {name: torch.cat(outputs, 0) for name, outputs in activations.items()}
+        # for k,v in activations.items():
+	    #     print (k, v.size())
+        
+
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
             save_checkpoint({
@@ -278,6 +296,11 @@ def main_worker(gpu, ngpus_per_node, args):
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
             }, is_best)
+
+# def save_activation(name, mod, inp, out):
+# 	activations[name].append(out.cpu())
+# def save_activation_to_file():
+
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -291,44 +314,49 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     model.train()
 
     end = time.time()
+
+    # random choose batch: 1, 71, 8610, 12538, 18857
+
     for i, (inputs, targets) in enumerate(train_loader):
-        # measure data loading time
-        data_time.update(time.time() - end)
+        if i == 1 or i==71 or i==8610 or i==12538 or i == 18857:
+            # measure data loading time
+            data_time.update(time.time() - end)
 
-        inputs = inputs.cuda(args.gpu, non_blocking=True)
-        targets = targets.cuda(args.gpu, non_blocking=True)
+            inputs = inputs.cuda(args.gpu, non_blocking=True)
+            targets = targets.cuda(args.gpu, non_blocking=True)
 
-        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, args.alpha, use_cuda=True)
+            inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, args.alpha, use_cuda=True)
 
-        # compute output
-        output = model(inputs)
-        loss_func = mixup_criterion(targets_a, targets_b, lam)
-        loss = loss_func(criterion, output)
+            # compute output
+            print('Epoch:{0},Batch:{1}'.format(epoch,i))
+            output = model(inputs)
+            loss_func = mixup_criterion(targets_a, targets_b, lam)
+            loss = loss_func(criterion, output)
 
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, targets, topk=(1, 5))
-        losses.update(loss.item(), inputs.size(0))
-        top1.update(acc1[0], inputs.size(0))
-        top5.update(acc5[0], inputs.size(0))
+            # measure accuracy and record loss
+            acc1, acc5 = accuracy(output, targets, topk=(1, 5))
+            losses.update(loss.item(), inputs.size(0))
+            top1.update(acc1[0], inputs.size(0))
+            top5.update(acc5[0], inputs.size(0))
 
-        # compute gradient and do SGD step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # compute gradient and do SGD step
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
 
-        if i % args.print_freq == 0:
+            #if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   epoch, i, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1, top5=top5))
+                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top5=top5))
 
 
 def validate(val_loader, model, criterion, args):

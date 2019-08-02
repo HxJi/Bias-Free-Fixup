@@ -41,6 +41,9 @@ class FixupBasicBlock(nn.Module):
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
 
+        #record activation after relu 
+        print out
+
         #out = self.conv2(out + self.bias2a)
         out = self.conv2(out)
         out = out * self.scale + self.bias2b
@@ -51,6 +54,9 @@ class FixupBasicBlock(nn.Module):
 
         out += identity
         out = self.relu(out)
+
+        #record activation after relu 2
+        print out.size(), type(out)
 
         return out
 
@@ -78,14 +84,18 @@ class FixupBottleneck(nn.Module):
     def forward(self, x):
         identity = x
         # relu->bias#a->conv remove them
+        
         #out = self.conv1(x + self.bias1a)
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
-        #print out.size()
+        #record activation after relu 1
+        print out.size(), type(out)
 
         #out = self.conv2(out + self.bias2a)
         out = self.conv2(out)
         out = self.relu(out + self.bias2b)
+        #record activation after relu 2
+        print out.size(), type(out)
 
         #out = self.conv3(out + self.bias3a)
         out = self.conv3(out)
@@ -97,6 +107,8 @@ class FixupBottleneck(nn.Module):
 
         out += identity
         out = self.relu(out)
+        #record activation after relu 3
+        print out.size(), type(out)
 
         return out
 
@@ -164,13 +176,6 @@ class FixupResNet(nn.Module):
         x = self.fc(x + self.bias2)
 
         return x
-
-activation = {}
-def get_activation(name):
-    def hook(model, input, output):
-        activation[name] = output.detach()
-    return hook
-
 
 def fixup_resnet18(**kwargs):
     """Constructs a Fixup-ResNet-18 model.
