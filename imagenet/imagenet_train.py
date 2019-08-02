@@ -273,13 +273,13 @@ def main_worker(gpu, ngpus_per_node, args):
         best_acc1 = max(acc1, best_acc1)
         
         # save checkpoint for every epoch
-        save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best, '{0}-checkpoint-{1}.pth.tar'.format(args.arch,epoch + 1))
+        # save_checkpoint({
+        #         'epoch': epoch + 1,
+        #         'arch': args.arch,
+        #         'state_dict': model.state_dict(),
+        #         'best_acc1': best_acc1,
+        #         'optimizer' : optimizer.state_dict(),
+        #     }, is_best, '{0}-checkpoint-{1}.pth.tar'.format(args.arch,epoch + 1))
 
         # [Houxiang] save activation and sanity check
         # activations = {name: torch.cat(outputs, 0) for name, outputs in activations.items()}
@@ -287,15 +287,15 @@ def main_worker(gpu, ngpus_per_node, args):
 	    #     print (k, v.size())
         
 
-        if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                and args.rank % ngpus_per_node == 0):
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best)
+        # if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+        #         and args.rank % ngpus_per_node == 0):
+        #     save_checkpoint({
+        #         'epoch': epoch + 1,
+        #         'arch': args.arch,
+        #         'state_dict': model.state_dict(),
+        #         'best_acc1': best_acc1,
+        #         'optimizer' : optimizer.state_dict(),
+        #     }, is_best)
 
 # def save_activation(name, mod, inp, out):
 # 	activations[name].append(out.cpu())
