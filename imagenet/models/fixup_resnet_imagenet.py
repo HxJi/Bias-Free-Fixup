@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-
+import scipy.io as io
 
 __all__ = ['FixupResNet', 'fixup_resnet18', 'fixup_resnet34', 'fixup_resnet50', 'fixup_resnet101', 'fixup_resnet152']
 
@@ -42,11 +42,12 @@ class FixupBasicBlock(nn.Module):
         out = self.relu(out + self.bias1b)
 
         #record activation after relu 
-        print out
+        print('Out 1 type,size:', type(out))
+        np.savetxt(out.numpy())
 
         #out = self.conv2(out + self.bias2a)
-        out = self.conv2(out)
-        out = out * self.scale + self.bias2b
+        #out = self.conv2(out)
+        #out = out * self.scale + self.bias2b
 
         if self.downsample is not None:
             #identity = self.downsample(x)
@@ -56,7 +57,7 @@ class FixupBasicBlock(nn.Module):
         out = self.relu(out)
 
         #record activation after relu 2
-        print out.size(), type(out)
+        #print (type(out))
 
         return out
 
@@ -64,7 +65,7 @@ class FixupBasicBlock(nn.Module):
 class FixupBottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes,  numlayer, stride=1, downsample=None):
         super(FixupBottleneck, self).__init__()
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.bias1a = nn.Parameter(torch.zeros(1))
@@ -80,36 +81,55 @@ class FixupBottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
+        self.numlayer = numlayer
 
     def forward(self, x):
         identity = x
         # relu->bias#a->conv remove them
-        
-        #out = self.conv1(x + self.bias1a)
+
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
-        #record activation after relu 1
-        print out.size(), type(out)
+       
+        activation_file_1 = open('actviation-{0}-1'.format(self.numlayer), 'ab')
+        array = out.cpu().detach().numpy()
+        array[array!=0] = 1
+        array.dtype = 'int8'
+        array2 = array[0:15]  
+        print(array2.shape)      
+        activation_file_1.write(array2)
+        activation_file_1.close()
 
-        #out = self.conv2(out + self.bias2a)
         out = self.conv2(out)
         out = self.relu(out + self.bias2b)
-        #record activation after relu 2
-        print out.size(), type(out)
 
-        #out = self.conv3(out + self.bias3a)
+        activation_file_2 = open('actviation-{0}-2'.format(self.numlayer), 'ab')
+        array3 = out.cpu().detach().numpy()
+        array3[array3!=0] = 1
+        array3.dtype = 'int8'
+        array4 = array3[0:15]    
+        print(array4.shape)     
+        activation_file_2.write(array4)
+        activation_file_2.close()
+
+
         out = self.conv3(out)
         out = out * self.scale + self.bias3b
 
         if self.downsample is not None:
-            #identity = self.downsample(x)
             identity = self.downsample(x + self.bias1a)
 
         out += identity
         out = self.relu(out)
-        #record activation after relu 3
-        print out.size(), type(out)
 
+        activation_file_3 = open('actviation-{0}-3'.format(self.numlayer), 'ab')
+        array5 = out.cpu().detach().numpy()
+        array5[array5!=0] = 1
+        array5.dtype = 'int8'
+        array6 = array5[0:15] 
+        print(array6.shape)        
+        activation_file_3.write(array6)
+        activation_file_3.close()
+        
         return out
 
 
@@ -117,6 +137,8 @@ class FixupResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000):
         super(FixupResNet, self).__init__()
+        
+        self.numlayer = 0
         self.num_layers = sum(layers)
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -124,10 +146,16 @@ class FixupResNet(nn.Module):
         self.bias1 = nn.Parameter(torch.zeros(1))
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        self.layer1 = self._make_layer(block, 64, layers[0], self.numlayer)
+        self.numlayer = self.numlayer + layers[0]
+        self.layer2 = self._make_layer(block, 128, layers[1], self.numlayer, stride=2)
+        self.numlayer = self.numlayer + layers[1]
+        self.layer3 = self._make_layer(block, 256, layers[2], self.numlayer, stride=2 )
+        self.numlayer = self.numlayer + layers[2]
+        self.layer4 = self._make_layer(block, 512, layers[3], self.numlayer, stride=2 )
+        self.numlayer = self.numlayer + layers[3]
+
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.bias2 = nn.Parameter(torch.zeros(1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -148,16 +176,16 @@ class FixupResNet(nn.Module):
                 nn.init.constant_(m.weight, 0)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    def _make_layer(self, block, planes, blocks, numlayer, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = conv1x1(self.inplanes, planes * block.expansion, stride)
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, numlayer, stride, downsample))
         self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes, numlayer+i))
 
         return nn.Sequential(*layers)
 

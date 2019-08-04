@@ -262,15 +262,16 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
 
+        
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, cel, args)
+        #acc1 = validate(val_loader, model, cel, args)
 
         # remember best acc@1 and save checkpoint
-        is_best = acc1 > best_acc1
-        best_acc1 = max(acc1, best_acc1)
+        #is_best = acc1 > best_acc1
+        #best_acc1 = max(acc1, best_acc1)
         
         # save checkpoint for every epoch
         # save_checkpoint({
@@ -315,10 +316,9 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
 
-    # random choose batch: 1, 71, 8610, 12538, 18857
-
+    # random choose batch: 1, 71, 160, 238, 527
     for i, (inputs, targets) in enumerate(train_loader):
-        if i == 1 or i==71 or i==8610 or i==12538 or i == 18857:
+        if i == 1 or i==71 or i==160 or i==238 or i == 527:
             # measure data loading time
             data_time.update(time.time() - end)
 
@@ -330,19 +330,20 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             # compute output
             print('Epoch:{0},Batch:{1}'.format(epoch,i))
             output = model(inputs)
-            loss_func = mixup_criterion(targets_a, targets_b, lam)
-            loss = loss_func(criterion, output)
+            
+            # loss_func = mixup_criterion(targets_a, targets_b, lam)
+            # loss = loss_func(criterion, output)
 
             # measure accuracy and record loss
-            acc1, acc5 = accuracy(output, targets, topk=(1, 5))
-            losses.update(loss.item(), inputs.size(0))
-            top1.update(acc1[0], inputs.size(0))
-            top5.update(acc5[0], inputs.size(0))
+            # acc1, acc5 = accuracy(output, targets, topk=(1, 5))
+            # losses.update(loss.item(), inputs.size(0))
+            # top1.update(acc1[0], inputs.size(0))
+            # top5.update(acc5[0], inputs.size(0))
 
             # compute gradient and do SGD step
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            # optimizer.zero_grad()
+            # loss.backward()
+            # optimizer.step()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
