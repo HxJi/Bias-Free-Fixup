@@ -1,0 +1,1 @@
+python3 imagenet_train.py  -a fixup_resnet50 --resume /home/hj14/Bias-Free-Fixup/imagenet/resnet50_ckpt/checkpoint-100.pth.tar --epochs 101 -b 64 --gpu 0  /home/hj14/Imagenet

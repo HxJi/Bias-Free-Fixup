@@ -94,7 +94,7 @@ class FixupBottleneck(nn.Module):
         array = out.cpu().detach().numpy()
         array[array!=0] = 1
         array.dtype = 'int8'
-        array2 = array[0:15]  
+        array2 = array[0:16]  
         print(array2.shape)      
         activation_file_1.write(array2)
         activation_file_1.close()
@@ -106,7 +106,7 @@ class FixupBottleneck(nn.Module):
         array3 = out.cpu().detach().numpy()
         array3[array3!=0] = 1
         array3.dtype = 'int8'
-        array4 = array3[0:15]    
+        array4 = array3[0:16]    
         print(array4.shape)     
         activation_file_2.write(array4)
         activation_file_2.close()
@@ -125,7 +125,7 @@ class FixupBottleneck(nn.Module):
         array5 = out.cpu().detach().numpy()
         array5[array5!=0] = 1
         array5.dtype = 'int8'
-        array6 = array5[0:15] 
+        array6 = array5[0:16] 
         print(array6.shape)        
         activation_file_3.write(array6)
         activation_file_3.close()
