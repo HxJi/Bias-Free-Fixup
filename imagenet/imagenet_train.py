@@ -140,13 +140,17 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank = args.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
+    
+    tmpcheckpoint = torch.load(args.resume)
+
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        print("model start", tmpcheckpoint['epoch'])
+        model = models.__dict__[args.arch](epoch = tmpcheckpoint['epoch'])
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -262,7 +266,6 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
 
-        
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, args)
 
@@ -318,7 +321,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     # random choose batch: 1, 71, 160, 238, 527
     for i, (inputs, targets) in enumerate(train_loader):
-        if i == 1 or i==71 or i==160 or i==238 or i == 527:
+        if i == 20:
             # measure data loading time
             data_time.update(time.time() - end)
 
@@ -329,8 +332,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
             # compute output
             print('Epoch:{0},Batch:{1}'.format(epoch,i))
-            output = model(inputs)
-            
+            output = model(inputs, epoch)
+            exit()
             # loss_func = mixup_criterion(targets_a, targets_b, lam)
             # loss = loss_func(criterion, output)
 

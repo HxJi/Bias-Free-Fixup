@@ -65,7 +65,7 @@ class FixupBasicBlock(nn.Module):
 class FixupBottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes,  numlayer, stride=1, downsample=None):
+    def __init__(self, inplanes, planes,  numlayer, epoch, stride=1, downsample=None):
         super(FixupBottleneck, self).__init__()
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.bias1a = nn.Parameter(torch.zeros(1))
@@ -82,6 +82,7 @@ class FixupBottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
         self.numlayer = numlayer
+        self.epoch = epoch
 
     def forward(self, x):
         identity = x
@@ -89,28 +90,31 @@ class FixupBottleneck(nn.Module):
 
         out = self.conv1(x)
         out = self.relu(out + self.bias1b)
-       
-        activation_file_1 = open('actviation-{0}-1'.format(self.numlayer), 'ab')
+        #sparsity_file = open('sparsity-{0}.csv'.format(self.epoch), 'a')
+        activation_file_1 = open('activation-{0}-{1}-1'.format(self.epoch, self.numlayer), 'ab')
+        print(1-torch.nonzero(out).size(0)/torch.numel(out))
+        #sparsity_file.write('{}'.format(asp))
+
         array = out.cpu().detach().numpy()
         array[array!=0] = 1
-        array.dtype = 'int8'
-        array2 = array[0:16]  
-        print(array2.shape)      
+        array2 = array.astype(np.uint8)
+        array2 = array2[0:16]    
         activation_file_1.write(array2)
         activation_file_1.close()
 
         out = self.conv2(out)
         out = self.relu(out + self.bias2b)
 
-        activation_file_2 = open('actviation-{0}-2'.format(self.numlayer), 'ab')
+        print(1-torch.nonzero(out).size(0)/torch.numel(out))
+        #sparsity_file.write('{}'.format(asp))
+
+        activation_file_2 = open('activation-{0}-{1}-2'.format(self.epoch, self.numlayer), 'ab')
         array3 = out.cpu().detach().numpy()
         array3[array3!=0] = 1
-        array3.dtype = 'int8'
-        array4 = array3[0:16]    
-        print(array4.shape)     
+        array4 = array3.astype(np.uint8)
+        array4 = array4[0:16]         
         activation_file_2.write(array4)
         activation_file_2.close()
-
 
         out = self.conv3(out)
         out = out * self.scale + self.bias3b
@@ -121,24 +125,30 @@ class FixupBottleneck(nn.Module):
         out += identity
         out = self.relu(out)
 
-        activation_file_3 = open('actviation-{0}-3'.format(self.numlayer), 'ab')
+        print(1-torch.nonzero(out).size(0)/torch.numel(out))
+        #sparsity_file.write('{}'.format(asp))
+
+        activation_file_3 = open('activation-{0}-{1}-3'.format(self.epoch, self.numlayer), 'ab')
         array5 = out.cpu().detach().numpy()
         array5[array5!=0] = 1
-        array5.dtype = 'int8'
-        array6 = array5[0:16] 
-        print(array6.shape)        
+        array6 = array5.astype(np.uint8)
+        array6 = array6[0:16]      
         activation_file_3.write(array6)
         activation_file_3.close()
-        
+        #sparsity_file.close()
+
         return out
 
 
 class FixupResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, epoch, num_classes=1000):
         super(FixupResNet, self).__init__()
         
-        self.numlayer = 0
+        self.numlayer = 1
+        self.epoch = epoch
+        print('key step', epoch)
+        print('self key', self.epoch)
         self.num_layers = sum(layers)
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -147,13 +157,13 @@ class FixupResNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(block, 64, layers[0], self.numlayer)
+        self.layer1 = self._make_layer(block, 64, layers[0], self.numlayer, self.epoch)
         self.numlayer = self.numlayer + layers[0]
-        self.layer2 = self._make_layer(block, 128, layers[1], self.numlayer, stride=2)
+        self.layer2 = self._make_layer(block, 128, layers[1], self.numlayer, self.epoch, stride=2)
         self.numlayer = self.numlayer + layers[1]
-        self.layer3 = self._make_layer(block, 256, layers[2], self.numlayer, stride=2 )
+        self.layer3 = self._make_layer(block, 256, layers[2], self.numlayer, self.epoch, stride=2 )
         self.numlayer = self.numlayer + layers[2]
-        self.layer4 = self._make_layer(block, 512, layers[3], self.numlayer, stride=2 )
+        self.layer4 = self._make_layer(block, 512, layers[3], self.numlayer, self.epoch, stride=2 )
         self.numlayer = self.numlayer + layers[3]
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -176,23 +186,41 @@ class FixupResNet(nn.Module):
                 nn.init.constant_(m.weight, 0)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, numlayer, stride=1):
+    def _make_layer(self, block, planes, blocks, numlayer, epoch, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = conv1x1(self.inplanes, planes * block.expansion, stride)
 
         layers = []
-        layers.append(block(self.inplanes, planes, numlayer, stride, downsample))
+        layers.append(block(self.inplanes, planes, numlayer, epoch, stride, downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, numlayer+i))
+            layers.append(block(self.inplanes, planes, numlayer+i, epoch))
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, epoch):
         x = self.conv1(x)
         x = self.relu(x + self.bias1)
+        print(1-torch.nonzero(x).size(0)/torch.numel(x))
+        activation_file_pool = open('activation-{0}-{1}-relu'.format(epoch,0), 'ab')
+        array = x.cpu().detach().numpy()
+        array[array!=0] = 1
+        brray = array.astype(np.uint8)
+        brray = brray[0:16] 
+        activation_file_pool.write(brray)
+        activation_file_pool.close()
+
         x = self.maxpool(x)
+        print(1-torch.nonzero(x).size(0)/torch.numel(x))
+        activation_file_pool = open('activation-{0}-{1}-maxpool'.format(epoch,0), 'ab')
+        array = x.cpu().detach().numpy()
+        array[array!=0] = 1
+        brray = array.astype(np.uint8)
+        brray = brray[0:16] 
+        activation_file_pool.write(brray)
+        activation_file_pool.close()
+        
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -200,6 +228,15 @@ class FixupResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
+        print(1-torch.nonzero(x).size(0)/torch.numel(x))
+        activation_file_pool = open('activation-{0}-{1}-avgpool'.format(epoch,0), 'ab')
+        array = x.cpu().detach().numpy()
+        array[array!=0] = 1
+        brray = array.astype(np.uint8)
+        brray = brray[0:16] 
+        activation_file_pool.write(brray)
+        activation_file_pool.close()
+
         x = x.view(x.size(0), -1)
         x = self.fc(x + self.bias2)
 
