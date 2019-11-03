@@ -345,12 +345,12 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
             # compute gradient and do SGD step
             optimizer.zero_grad()
+            loss.backward()
             for p in model.parameters():
                 print(p)
                 print(p.grad)
-            loss.backward()
             #print(optimizer.state_dict())
-
+            exit()
             optimizer.step()
 
             # measure elapsed time
