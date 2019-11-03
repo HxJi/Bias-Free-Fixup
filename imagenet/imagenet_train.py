@@ -333,10 +333,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             # compute output
             print('Epoch:{0},Batch:{1}'.format(epoch,i))
             output = model(inputs, epoch)
-            # exit()
+
             loss_func = mixup_criterion(targets_a, targets_b, lam)
             loss = loss_func(criterion, output)
-
+            
             #measure accuracy and record loss
             # acc1, acc5 = accuracy(output, targets, topk=(1, 5))
             # losses.update(loss.item(), inputs.size(0))
@@ -346,10 +346,11 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             # compute gradient and do SGD step
             optimizer.zero_grad()
             loss.backward()
-            for p in model.parameters():
-                print(p)
-                print(p.grad)
-            #print(optimizer.state_dict())
+            # for p in model.parameters():
+            #     print(p)
+            #     print(p.grad)
+            # #print(optimizer.state_dict())
+            #print(conv1out.grad)
             exit()
             optimizer.step()
 

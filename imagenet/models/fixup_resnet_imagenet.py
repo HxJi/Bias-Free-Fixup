@@ -84,13 +84,22 @@ class FixupBottleneck(nn.Module):
         self.numlayer = numlayer
         self.epoch = epoch
 
+    def activation_hook(self,grad):
+        print(grad)
+        
     def forward(self, x):
         identity = x
         # relu->bias#a->conv remove them
 
-        out = self.conv1(x)
+        conv1out = self.conv1(x)
+        conv1out.register_hook(self.activation_hook)
+        # dy of conv1 = dx of relu (what we want)
+        conv1out.retain_grad()
+
+        # out.retain_grad()
+        # print(out.grad)
         #print(1-torch.nonzero(out).size(0)/torch.numel(out))
-        out = self.relu(out + self.bias1b)
+        out = self.relu(conv1out + self.bias1b)
 
         out = self.conv2(out)
         #print(1-torch.nonzero(out).size(0)/torch.numel(out))
