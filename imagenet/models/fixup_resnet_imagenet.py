@@ -85,7 +85,7 @@ class FixupBottleneck(nn.Module):
         self.epoch = epoch
 
     def activation_hook(self,grad):
-        print(grad.size())
+        #print(grad.size())
         print(1-torch.nonzero(grad).size(0)/torch.numel(grad))
 
     def forward(self, x):
@@ -96,19 +96,20 @@ class FixupBottleneck(nn.Module):
         conv1out.register_hook(self.activation_hook)
         # dy of conv1 = dx of relu (what we want)
         conv1out.retain_grad()
-
-        # out.retain_grad()
-        # print(out.grad)
-        #print(1-torch.nonzero(out).size(0)/torch.numel(out))
+        
         out = self.relu(conv1out + self.bias1b)
 
-        out = self.conv2(out)
-        #print(1-torch.nonzero(out).size(0)/torch.numel(out))
-        out = self.relu(out + self.bias2b)
+        conv2out = self.conv2(out)
+        conv2out.register_hook(self.activation_hook)
+        conv2out.retain_grad()
 
-        out = self.conv3(out)
-        #print(1-torch.nonzero(out).size(0)/torch.numel(out))
-        out = out * self.scale + self.bias3b
+        out = self.relu(conv2out + self.bias2b)
+
+        conv3out = self.conv3(out)
+        conv3out.register_hook(self.activation_hook)
+        conv3out.retain_grad()
+
+        out = conv3out * self.scale + self.bias3b
 
         if self.downsample is not None:
             identity = self.downsample(x + self.bias1a)
