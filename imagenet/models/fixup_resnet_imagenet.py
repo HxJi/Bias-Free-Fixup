@@ -85,7 +85,7 @@ class FixupBottleneck(nn.Module):
         self.epoch = epoch
 
     def activation_hook(self,grad):
-        #print(grad.size())
+        print(grad.size())
         print(1-torch.nonzero(grad).size(0)/torch.numel(grad))
 
     def forward(self, x):
