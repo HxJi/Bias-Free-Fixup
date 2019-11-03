@@ -338,15 +338,16 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             loss = loss_func(criterion, output)
 
             #measure accuracy and record loss
-            acc1, acc5 = accuracy(output, targets, topk=(1, 5))
-            losses.update(loss.item(), inputs.size(0))
-            top1.update(acc1[0], inputs.size(0))
-            top5.update(acc5[0], inputs.size(0))
+            # acc1, acc5 = accuracy(output, targets, topk=(1, 5))
+            # losses.update(loss.item(), inputs.size(0))
+            # top1.update(acc1[0], inputs.size(0))
+            # top5.update(acc5[0], inputs.size(0))
 
             # compute gradient and do SGD step
             optimizer.zero_grad()
             loss.backward()
             print(optimizer.state_dict())
+            exit()
             optimizer.step()
 
             # measure elapsed time
